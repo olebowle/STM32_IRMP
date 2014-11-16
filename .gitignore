@@ -2,4 +2,5 @@
 *.elf
 *.map
 *.o
+*.tar.gz
 *.zip
