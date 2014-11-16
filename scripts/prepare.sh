@@ -68,6 +68,7 @@ unzip -j $ar $path/Projects/Custom_HID/src/usb_endp.c
 unzip -j $ar $path/Projects/Custom_HID/src/usb_istr.c
 unzip -j $ar $path/Projects/Custom_HID/src/usb_prop.c
 unzip -j $ar $path/Projects/Custom_HID/src/usb_pwr.c
+
 ar='../../stsw-stm32010.zip'
 ver='3.1.0'
 path="STM32F10x_AN2594_FW_V$ver"
@@ -75,7 +76,7 @@ unzip -j $ar $path/Project/EEPROM_Emulation/src/eeprom.c
 unzip -j $ar $path/Project/EEPROM_Emulation/inc/eeprom.h
 patch -p1 -i ../../scripts/usb_hid.patch
 patch -p1 -i ../../scripts/eeprom.patch
-patch -p2 -i ../../scripts/stm32f10x_conf.patch
+patch -p1 -i ../../scripts/stm32f10x_conf.patch
 cd ../..
 
 ar='../../irmp.tar.gz'

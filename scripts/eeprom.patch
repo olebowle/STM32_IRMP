@@ -1,6 +1,6 @@
-diff -Nru eeprom.orig/eeprom.h eeprom/eeprom.h
---- eeprom.orig/eeprom.h	2009-08-04 17:25:52.000000000 +0200
-+++ eeprom/eeprom.h	2014-11-15 05:25:06.450733200 +0100
+diff -purN a/eeprom.h b/eeprom.h
+--- a/eeprom.h	2009-08-04 16:25:52.000000000 +0200
++++ b/eeprom.h	2014-11-16 11:39:16.346601883 +0100
 @@ -35,8 +35,8 @@
  #endif
  
