@@ -304,6 +304,7 @@ void uint32_to_buf(uint32_t Val, uint8_t BufIdx)
 
 void Wakeup(void)
 {
+	AlarmValue = 0xFFFFFFFF;
 	/* USB wakeup */
 	Resume(RESUME_START);
 	/* motherboard switch: WAKEUP_PIN short high */
