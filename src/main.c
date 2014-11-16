@@ -46,9 +46,35 @@
 
 #define SND_MAX 2
 
+#define ACCESS_COUNT 3
+enum __attribute__ ((__packed__)) access {
+	ACC_GET,
+	ACC_SET,
+	ACC_RESET
+};
+
+#define COMMAND_COUNT 7
+enum __attribute__ ((__packed__)) command {
+	CMD_EMIT,
+	CMD_CAPS,
+	CMD_FW,
+	CMD_ALARM,
+	CMD_TRIG_CMD,
+	CMD_TRIG_IR,
+	CMD_WAKE
+};
+
+#define STAT_COUNT 3
+enum __attribute__ ((__packed__)) status {
+	STAT_CMD,
+	STAT_SUCCESS,
+	STAT_FAILURE
+};
+
 __IO uint8_t PrevXferComplete = 1;
 uint8_t PA9_state = 0;
 uint8_t buf[HID_OUT_BUFFER_SIZE];
+uint8_t wakeup_buf[6];
 uint16_t VirtAddVarTab[NumbOfVar] = {	0x0000, 0x1111, 0x2222, 0x3333, 0x4444, \
 					0x5555, 0x6666, 0x7777, 0x8888, 0x9999, \
 					0xAAAA, 0xBBBB, 0xCCCC, 0xDDDD, 0xEEEE};
@@ -306,10 +332,75 @@ void store_new_wakeup(void)
 	toggle_LED();
 }
 
+int8_t get_handler(uint8_t *buf)
+{
+	/* number of valid bytes in buf, -1 signifies error */
+	int8_t ret = 3;
+
+	switch ((enum command) buf[2]) {
+	case CMD_ALARM:
+		/* AlarmValue -> buf[3-6] */
+		uint32_to_buf(AlarmValue, 3);
+		ret += sizeof(AlarmValue);
+		break;
+	/* TODO: slots */
+	case CMD_WAKE:
+		/*wakeup_buf -> buf[3-8]*/
+		memcpy(&buf[3], &wakeup_buf, sizeof(wakeup_buf));
+		break;
+	default:
+		ret = -1;
+	}
+
+	return ret;
+}
+
+int8_t set_handler(uint8_t *buf)
+{
+	/* number of valid bytes in buf, -1 signifies error */
+	int8_t ret = 3;
+
+	switch ((enum command) buf[2]) {
+	case CMD_ALARM:
+		AlarmValue = (buf[3]<<24)|(buf[4]<<16)|(buf[5]<<8)|buf[6];
+		break;
+	/* TODO: slots, buf[3-8]->buf[3-6] */
+	case CMD_WAKE:
+		/* buf[3-8] -> eeprom[0-2] */
+		Store_buf_to_Eeprom(3, 0);
+		memcpy(&wakeup_buf, &buf[3], sizeof(wakeup_buf));
+		break;
+	default:
+		ret = -1;
+	}
+
+	return ret;
+}
+
+int8_t reset_handler(uint8_t *buf)
+{
+	/* number of valid bytes in buf, -1 signifies error */
+	int8_t ret = 3;
+
+	switch ((enum command) buf[2]) {
+	case CMD_ALARM:
+		AlarmValue = 0xFFFFFFFF;
+		break;
+	/* TODO: slots, buf[3-8]->buf[3-6] */
+	case CMD_WAKE:
+		/*TODO*/
+		break;
+	default:
+		ret = -1;
+	}
+	return ret;
+}
+
 int main(void)
 {
-	uint8_t k, wakeup_buf[6], trigger_send_buf[6], send_buf[SND_MAX][6];
+	uint8_t k, trigger_send_buf[6], send_buf[SND_MAX][6];
 	IRMP_DATA myIRData, loopIRData, sendIRData, lastIRData = { 0, 0, 0, 0};
+	int8_t ret;
 
 	LED_Switch_init();
 	LED_init();
@@ -350,110 +441,31 @@ int main(void)
 #endif /* WAKEUP_RESET */
 
 		/* test if USB is connected to PC, sendtransfer is complete and data is received */
-		if (USB_HID_GetStatus() == CONFIGURED && PrevXferComplete && USB_HID_ReceiveData(buf) == RX_READY) {
+		if (USB_HID_GetStatus() == CONFIGURED && PrevXferComplete && USB_HID_ReceiveData(buf) == RX_READY && buf[0] == STAT_CMD) {
 
-			switch (buf[1]) {
-			/* set wakeup IRData */
-			case 0xFF:
-				/* buf[2-7] -> eeprom[0-2] */
-				Store_buf_to_Eeprom(2, 0);
-				memset(buf, 0, sizeof(buf));
-				/* eeprom[0-2] -> buf[0-5] */
-				Restore_Eeprom_to_buf(0);
-				memcpy(wakeup_buf, buf, sizeof(wakeup_buf));
+			switch ((enum access) buf[1]) {
+			case ACC_GET:
+				ret = get_handler(buf);
 				break;
-
-			/* set trigger_send IRData */
-			case 0xFE:
-				/* buf[2-7] -> eeprom[3-5] */
-				Store_buf_to_Eeprom(2, 3);
-				memset(buf, 0, sizeof(buf));
-				/* eeprom[3-5] -> buf[0-5] */
-				Restore_Eeprom_to_buf(3);
-				memcpy(trigger_send_buf, buf, sizeof(trigger_send_buf));
+			case ACC_SET:
+				ret = set_handler(buf);
 				break;
-
-			/* set send[0] IRData */
-			case 0xFD:
-				/* buf[2-7] -> eeprom[6-8] */
-				Store_buf_to_Eeprom(2, 6);
-				memset(buf, 0, sizeof(buf));
-				/* eeprom[6-8] -> buf[0-5] */
-				Restore_Eeprom_to_buf(6);
-				memcpy(send_buf[0], buf, sizeof(send_buf[0]));
+			case ACC_RESET:
+				ret = reset_handler(buf);
 				break;
-
-			/* set send[1] IRData */
-			case 0xFC:
-				/* buf[2-7] -> eeprom[9-11] */
-				Store_buf_to_Eeprom(2, 9);
-				memset(buf, 0, sizeof(buf));
-				/* eeprom[9-11] -> buf[0-5] */
-				Restore_Eeprom_to_buf(9);
-				memcpy(send_buf[1], buf, sizeof(send_buf[1]));
-				break;
-
-			/* get wakeup IRData */
-			case 0xFB:
-				memset(buf, 0, sizeof(buf));
-				memcpy(buf, wakeup_buf, sizeof(wakeup_buf));
-				break;
-
-			/* get trigger_send IRData */
-			case 0xFA:
-				memset(buf, 0, sizeof(buf));
-				memcpy(buf, trigger_send_buf, sizeof(trigger_send_buf));
-				break;
-
-			/* get send[0] IRData */
-			case 0xF9:
-				memset(buf, 0, sizeof(buf));
-				memcpy(buf, send_buf[0], sizeof(send_buf[0]));
-				break;
-
-			/* get send[1] IRData */
-			case 0xF8:
-				memset(buf, 0, sizeof(buf));
-				memcpy(buf, send_buf[1], sizeof(send_buf[1]));
-				break;
-
-			/* IR send command */
-			case 0xF4:
-				/* buf[2-7] -> sendIRData */
-				buf_to_IRData(buf, 2, &sendIRData);
-				/* 0|1: don't|do wait until send finished */
-				irsnd_send_data(&sendIRData, 1);
-				yellow_on();
-				memset(buf, 0, sizeof(buf));
-				/* sendIRData -> buf[0-5] */
-				IRData_to_buf(&sendIRData);
-				/* timestamp -> buf[6-19] */
-				uint32_to_buf(timestamp, 6);
-				break;
-
-			/* 4 halfwords in reverse order, little endian */
-			/* set systick alarm */
-			case 0xF3:
-				/* buf[2-5] -> AlarmValue */
-				AlarmValue = (buf[2]<<24)|(buf[3]<<16)|(buf[4]<<8)|buf[5];
-				memset(buf, 0, sizeof(buf));
-				/* AlarmValue -> buf[0-5] */
-				uint32_to_buf(AlarmValue, 0);
-				break;
-
-			/* get systick alarm */
-			case 0xF2:
-				memset(buf, 0, sizeof(buf));
-				/* AlarmValue -> buf[0-5] */
-				uint32_to_buf(AlarmValue, 0);
-				break;
-
 			default:
-				break;
+				ret = -1;
+			}
+
+			if (ret == -1) {
+				buf[0] = STAT_FAILURE;
+				ret = 3;
+			} else {
+				buf[0] = STAT_SUCCESS;
 			}
 
 			/* send (modified) data (for verify) */
-			USB_HID_SendData(buf, 11);
+			USB_HID_SendData(buf, ret);
 			toggle_LED();
 		}
 
