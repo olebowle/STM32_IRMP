@@ -51,6 +51,7 @@ unzip -j $ar $path/Libraries/STM32_USB-FS-Device_Driver/src/usb_int.c
 unzip -j $ar $path/Libraries/STM32_USB-FS-Device_Driver/src/usb_mem.c
 unzip -j $ar $path/Libraries/STM32_USB-FS-Device_Driver/src/usb_regs.c
 unzip -j $ar $path/Libraries/STM32_USB-FS-Device_Driver/src/usb_sil.c
+unzip -j $ar $path/Projects/Custom_HID/inc/platform_config.h
 unzip -j $ar $path/Projects/Custom_HID/inc/hw_config.h
 unzip -j $ar $path/Projects/Custom_HID/inc/stm32_it.h
 unzip -j $ar $path/Projects/Custom_HID/inc/stm32f10x_conf.h
@@ -72,7 +73,9 @@ ver='3.1.0'
 path="STM32F10x_AN2594_FW_V$ver"
 unzip -j $ar $path/Project/EEPROM_Emulation/src/eeprom.c
 unzip -j $ar $path/Project/EEPROM_Emulation/inc/eeprom.h
-patch -p1 -i ../../scripts/stm_lib.patch
+patch -p1 -i ../../scripts/usb_hid.patch
+patch -p1 -i ../../scripts/eeprom.patch
+patch -p2 -i ../../scripts/stm32f10x_conf.patch
 cd ../..
 
 ar='../../irmp.tar.gz'

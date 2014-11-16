@@ -1,38 +1,7 @@
-diff -purN a/eeprom.h b/eeprom.h
---- a/eeprom.h	2009-08-04 16:25:52.000000000 +0200
-+++ b/eeprom.h	2014-11-14 18:13:53.700521744 +0100
-@@ -25,6 +25,7 @@
- 
- /* Includes ------------------------------------------------------------------*/
- #include "stm32f10x.h"
-+#include "stm32f10x_flash.h"
- 
- /* Exported constants --------------------------------------------------------*/
- /* Define the STM32F10Xxx Flash page size depending on the used STM32 device */
-@@ -35,8 +36,8 @@
- #endif
- 
- /* EEPROM start address in Flash */
--#define EEPROM_START_ADDRESS    ((uint32_t)0x08010000) /* EEPROM emulation start address:
--                                                  after 64KByte of used Flash memory */
-+#define EEPROM_START_ADDRESS	((uint32_t)0x0801F800)	/* F103C8 has actually 128k = 0x20000 Flash */
-+							/* 0x8020000 - 2 * 0x400 = 0x801F800 */
- 
- /* Pages 0 and 1 base and end addresses */
- #define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))
-@@ -65,7 +66,7 @@
- #define PAGE_FULL               ((uint8_t)0x80)
- 
- /* Variables' number */
--#define NumbOfVar               ((uint8_t)0x03)
-+#define NumbOfVar		((uint8_t)0x0F)
- 
- /* Exported types ------------------------------------------------------------*/
- /* Exported macro ------------------------------------------------------------*/
-diff -purN a/hw_config.c b/hw_config.c
---- a/hw_config.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/hw_config.c	2014-11-14 18:13:53.700521744 +0100
-@@ -43,6 +43,7 @@ uint32_t ADC_ConvertedValueX_1 = 0;
+diff -Nru alles.orig/hw_config.c alles/hw_config.c
+--- alles.orig/hw_config.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/hw_config.c	2014-11-15 04:10:31.871489900 +0100
+@@ -43,6 +43,7 @@
  __IO uint16_t  ADC1ConvertedValue = 0, ADC1ConvertedVoltage = 0, calibration_value = 0;
  
  /* Extern variables ----------------------------------------------------------*/
@@ -40,16 +9,16 @@ diff -purN a/hw_config.c b/hw_config.c
  /* Private function prototypes -----------------------------------------------*/
  static void IntToUnicode (uint32_t value , uint8_t *pbuf , uint8_t len);
  /* Private functions ---------------------------------------------------------*/
-@@ -78,14 +79,16 @@ void Set_System(void)
+@@ -78,14 +79,16 @@
    
  #if !defined(STM32L1XX_MD) && !defined(STM32L1XX_HD) && !defined(STM32L1XX_MD_PLUS) && !defined(STM32F37X) && !defined(STM32F30X)
    /* Enable USB_DISCONNECT GPIO clock */
 -  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_DISCONNECT, ENABLE);
-+  //RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_DISCONNECT, ENABLE);
++//  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_DISCONNECT, ENABLE);
    
    /* ADCCLK = PCLK2/8 */
 -  RCC_ADCCLKConfig(RCC_PCLK2_Div8);    
-+  //RCC_ADCCLKConfig(RCC_PCLK2_Div8);    
++//  RCC_ADCCLKConfig(RCC_PCLK2_Div8);
  #endif /* STM32L1XX_XD */
    
    /* Configure the used GPIOs*/
@@ -59,20 +28,27 @@ diff -purN a/hw_config.c b/hw_config.c
    
  #if defined(USB_USE_EXTERNAL_PULLUP)
    /* Enable the USB disconnect GPIO clock */
-@@ -135,21 +138,23 @@ void Set_System(void)
+@@ -135,21 +138,30 @@
    STM_EVAL_PBInit(Button_RIGHT, Mode_EXTI);
  #else  
    /* Configure the KEY button in EXTI mode */
 -  STM_EVAL_PBInit(Button_KEY, Mode_EXTI);
-+  //STM_EVAL_PBInit(Button_KEY, Mode_EXTI);
++//  STM_EVAL_PBInit(Button_KEY, Mode_EXTI);
  #if !defined(STM32L1XX_HD)&& !defined(STM32L1XX_MD_PLUS) && !defined(STM32F37X) && !defined(STM32F30X) 
    /* Configure the Tamper button in EXTI mode */
 -  STM_EVAL_PBInit(Button_TAMPER, Mode_EXTI);
-+  //STM_EVAL_PBInit(Button_TAMPER, Mode_EXTI);
++//  STM_EVAL_PBInit(Button_TAMPER, Mode_EXTI);
  #endif /* STM32L1XX_XD */
  #endif  
    /* Additional EXTI configuration (configure both edges) */
    EXTI_Configuration();
++
++  EXTI_InitTypeDef EXTI_InitStructure;
++  EXTI_ClearITPendingBit(EXTI_Line18);
++  EXTI_InitStructure.EXTI_Line = EXTI_Line18;
++  EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
++  EXTI_InitStructure.EXTI_LineCmd = ENABLE;
++  EXTI_Init(&EXTI_InitStructure);
    
    /* Configure the LEDs */
 +#if 0
@@ -80,13 +56,12 @@ diff -purN a/hw_config.c b/hw_config.c
    STM_EVAL_LEDInit(LED2);
    STM_EVAL_LEDInit(LED3);
    STM_EVAL_LEDInit(LED4);
--  
+   
 +#endif
-+
  #if defined (STM32F30X)
    ADC30x_Configuration();
  #else  
-@@ -192,6 +197,9 @@ void Enter_LowPowerMode(void)
+@@ -192,6 +204,9 @@
  {
    /* Set the device state to suspend */
    bDeviceState = SUSPENDED;
@@ -96,42 +71,41 @@ diff -purN a/hw_config.c b/hw_config.c
  }
  
  /*******************************************************************************
-@@ -281,7 +289,7 @@ void USB_Interrupts_Config(void)
-   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+@@ -282,6 +297,7 @@
    NVIC_Init(&NVIC_InitStructure);
  #endif /* STM32L1XX_XD */
--  
+   
 +#if 0
    /* Enable the EXTI9_5 Interrupt */
    NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-@@ -296,7 +304,7 @@ void USB_Interrupts_Config(void)
-   NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel1_IRQn;
+@@ -297,6 +313,7 @@
    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
    NVIC_Init(&NVIC_InitStructure);
--  
+   
 +#endif
  }
  
  /*******************************************************************************
-@@ -308,7 +316,7 @@ void USB_Interrupts_Config(void)
+@@ -308,7 +325,8 @@
  *******************************************************************************/
  void USB_Cable_Config (FunctionalState NewState)
  { 
 -#if defined(STM32L1XX_MD) || defined (STM32L1XX_HD)|| (STM32L1XX_MD_PLUS)
 +#if 0
++#if defined(STM32L1XX_MD) || defined (STM32L1XX_HD)|| defined(STM32L1XX_MD_PLUS)
    if (NewState != DISABLE)
    {
      STM32L15_USB_CONNECT;
-@@ -318,7 +326,6 @@ void USB_Cable_Config (FunctionalState N
-     STM32L15_USB_DISCONNECT;
-   }  
-   
--#else /* USE_STM3210B_EVAL or USE_STM3210E_EVAL */
-   if (NewState != DISABLE)
-   {
-     GPIO_ResetBits(USB_DISCONNECT, USB_DISCONNECT_PIN);
-@@ -339,6 +346,7 @@ void USB_Cable_Config (FunctionalState N
+@@ -328,6 +346,7 @@
+     GPIO_SetBits(USB_DISCONNECT, USB_DISCONNECT_PIN);
+   }
+ #endif /* STM32L1XX_MD */
++#endif
+ }
+ 
+ /*******************************************************************************
+@@ -339,6 +358,7 @@
  *******************************************************************************/
  void GPIO_Configuration(void)
  {
@@ -139,7 +113,7 @@ diff -purN a/hw_config.c b/hw_config.c
    GPIO_InitTypeDef GPIO_InitStructure;
    
  #if defined(STM32L1XX_MD) || defined(STM32L1XX_HD)|| defined(STM32L1XX_MD_PLUS) || defined (STM32F37X) || defined (STM32F30X)
-@@ -359,6 +367,7 @@ void GPIO_Configuration(void)
+@@ -359,6 +379,7 @@
    GPIO_InitStructure.GPIO_Pin = GPIO_IOAIN_PIN;
    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
    GPIO_Init(GPIO_IOAIN, &GPIO_InitStructure);
@@ -147,24 +121,23 @@ diff -purN a/hw_config.c b/hw_config.c
  }
  
  /*******************************************************************************
-@@ -372,7 +381,7 @@ void EXTI_Configuration(void)
+@@ -372,6 +393,7 @@
  {
    EXTI_InitTypeDef EXTI_InitStructure;
    
--#if defined (USE_STM32L152_EVAL)
 +#if 0
+ #if defined (USE_STM32L152_EVAL)
    /* Configure RIGHT EXTI line to generate an interrupt on rising & falling edges */  
    EXTI_InitStructure.EXTI_Line = RIGHT_BUTTON_EXTI_LINE;
-   EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-@@ -390,7 +399,6 @@ void EXTI_Configuration(void)
-   /* Clear the LEFT EXTI line pending bit */
-   EXTI_ClearITPendingBit(LEFT_BUTTON_EXTI_LINE);
+@@ -414,6 +436,7 @@
+ #endif 
+ #endif /* USE_STM32L152_EVAL */  
    
--#else    
-   /* Configure Key EXTI line to generate an interrupt on rising & falling edges */  
-   EXTI_InitStructure.EXTI_Line = KEY_BUTTON_EXTI_LINE;
-   EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-@@ -431,6 +439,7 @@ void EXTI_Configuration(void)
++#endif
+   /* Configure the EXTI line 18 connected internally to the USB IP */
+   EXTI_ClearITPendingBit(EXTI_Line18);
+   EXTI_InitStructure.EXTI_Line = EXTI_Line18; 
+@@ -431,6 +454,7 @@
  *******************************************************************************/
  void ADC_Configuration(void)
  {
@@ -172,7 +145,7 @@ diff -purN a/hw_config.c b/hw_config.c
    ADC_InitTypeDef       ADC_InitStructure;
    DMA_InitTypeDef DMA_InitStructure;
    /* Enable DMA1 clock */
-@@ -524,6 +533,7 @@ void ADC_Configuration(void)
+@@ -524,6 +548,7 @@
    while(ADC_GetCalibrationStatus(ADC1));  
    
  #endif /* STM32L1XX_XD */ 
@@ -180,7 +153,7 @@ diff -purN a/hw_config.c b/hw_config.c
  }
  #endif /* STM32F30x */
  /*******************************************************************************
-@@ -674,4 +684,29 @@ void ADC30x_Configuration(void)
+@@ -674,4 +699,29 @@
  }
  
  #endif
@@ -210,72 +183,48 @@ diff -purN a/hw_config.c b/hw_config.c
 +}
 +
  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-diff -purN a/hw_config.h b/hw_config.h
---- a/hw_config.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/hw_config.h	2014-11-14 18:13:53.700521744 +0100
-@@ -52,6 +52,7 @@ void ADC30x_Configuration(void);
+diff -Nru alles.orig/hw_config.h alles/hw_config.h
+--- alles.orig/hw_config.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/hw_config.h	2014-11-15 00:54:11.853888400 +0100
+@@ -49,6 +49,7 @@
+ void EXTI_Configuration(void);
+ void ADC_Configuration(void);
+ void ADC30x_Configuration(void);
++uint8_t HID_SendData(void);
  void Get_SerialNum(void);
  void TimingDelay_Decrement(void);
  void Delay(__IO uint32_t nCount);
-+uint8_t HID_SendData(void);
+diff -Nru alles.orig/platform_config.h alles/platform_config.h
+--- alles.orig/platform_config.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/platform_config.h	2014-11-14 17:01:31.000000000 +0100
+@@ -48,7 +48,7 @@
+  #elif defined (USE_STM3210E_EVAL)
+   #include "stm3210e_eval.h"
+  #else
+-  #error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
++//  #error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
+  #endif /* USE_STM3210B_EVAL */
+ #elif defined (USE_STM32373C_EVAL)
+  #include "stm32f37x.h"
+@@ -63,12 +63,12 @@
+ /* Uncomment the line corresponding to the STMicroelectronics evaluation board
+    used to run the example */
+ #if !defined (USE_STM3210B_EVAL) &&  !defined (USE_STM3210E_EVAL) &&  !defined (USE_STM32L152_EVAL) &&  !defined (USE_STM32L152D_EVAL)&&  !defined (USE_STM32373C_EVAL) &&  !defined (USE_STM32303C_EVAL)
+- //#define USE_STM3210B_EVAL
++ #define USE_STM3210B_EVAL
+  //#define USE_STM3210E_EVAL
+  //#define USE_STM32L152_EVAL
+ //#define USE_STM32L152D_EVAL
+ //#define USE_STM32373C_EVAL
+- #define USE_STM32303C_EVAL
++// #define USE_STM32303C_EVAL
+ #endif
  
- #endif  /*__HW_CONFIG_H*/
- 
-diff -purN a/platform_config.h b/platform_config.h
---- a/platform_config.h	1970-01-01 01:00:00.000000000 +0100
-+++ b/platform_config.h	2014-11-14 18:13:53.700521744 +0100
-@@ -0,0 +1,10 @@
-+#ifndef __PLATFORM_CONFIG_H
-+#define __PLATFORM_CONFIG_H
-+
-+#include "stm32f10x.h"
-+
-+#define	ID1	(0x1FFFF7E8)
-+#define	ID2	(0x1FFFF7EC)
-+#define	ID3	(0x1FFFF7F0)
-+
-+#endif /* __PLATFORM_CONFIG_H */
-diff -purN a/stm32f10x_conf.h b/stm32f10x_conf.h
---- a/stm32f10x_conf.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/stm32f10x_conf.h	2014-11-14 18:13:53.700521744 +0100
-@@ -32,6 +32,7 @@
- 
- /* Includes ------------------------------------------------------------------*/
- /* Uncomment the line below to enable peripheral header file inclusion */
-+#if 0
- #include "stm32f10x_adc.h"
- #include "stm32f10x_bkp.h"
- #include "stm32f10x_can.h"
-@@ -39,20 +40,21 @@
- #include "stm32f10x_dac.h"
- #include "stm32f10x_dbgmcu.h"
- #include "stm32f10x_dma.h"
--#include "stm32f10x_exti.h"
- #include "stm32f10x_flash.h"
- #include "stm32f10x_fsmc.h"
--#include "stm32f10x_gpio.h"
- #include "stm32f10x_i2c.h" 
- #include "stm32f10x_iwdg.h"
--#include "stm32f10x_pwr.h"
--#include "stm32f10x_rcc.h"
- #include "stm32f10x_rtc.h"
- #include "stm32f10x_sdio.h"
- #include "stm32f10x_spi.h"
- #include "stm32f10x_tim.h"
- #include "stm32f10x_usart.h"
- #include "stm32f10x_wwdg.h"
-+#endif
-+#include "stm32f10x_exti.h"
-+#include "stm32f10x_gpio.h"
-+#include "stm32f10x_pwr.h"
-+#include "stm32f10x_rcc.h"
- #include "misc.h"   /* High level functions for NVIC and SysTick (add-on to CMSIS functions) */
- 
- /* Exported types ------------------------------------------------------------*/
-diff -purN a/stm32_it.c b/stm32_it.c
---- a/stm32_it.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/stm32_it.c	2014-11-14 18:13:53.700521744 +0100
-@@ -164,11 +164,12 @@ void PendSV_Handler(void)
+ /*Unique Devices IDs register set*/
+diff -Nru alles.orig/stm32_it.c alles/stm32_it.c
+--- alles.orig/stm32_it.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/stm32_it.c	2014-11-15 00:37:08.000000000 +0100
+@@ -164,10 +164,12 @@
  * Output         : None
  * Return         : None
  *******************************************************************************/
@@ -284,12 +233,11 @@ diff -purN a/stm32_it.c b/stm32_it.c
  {
      TimingDelay--;
  }
--
 +#endif
+ 
  /******************************************************************************/
  /*            STM32 Peripherals Interrupt Handlers                        */
- /******************************************************************************/
-@@ -262,6 +263,7 @@ void EXTI15_10_IRQHandler(void)
+@@ -262,6 +264,7 @@
  * Output         : None
  * Return         : None
  *******************************************************************************/
@@ -297,34 +245,34 @@ diff -purN a/stm32_it.c b/stm32_it.c
  void DMA1_Channel1_IRQHandler(void)
  {  
    Send_Buffer[0] = 0x07;
-@@ -282,7 +284,6 @@ void DMA1_Channel1_IRQHandler(void)
-   
-   DMA_ClearFlag(DMA1_FLAG_TC1);
- }
--
- /*******************************************************************************
- * Function Name  : EXTI_IRQHandler
- * Description    : This function handles External lines interrupt request.
-@@ -325,6 +326,7 @@ void EXTI9_5_IRQHandler(void)
-     EXTI_ClearITPendingBit(KEY_BUTTON_EXTI_LINE);
-   }
- }
-+
- #if !defined(STM32L1XX_MD) &&  !defined(STM32L1XX_HD) && !defined(STM32L1XX_MD_PLUS)&& ! defined (STM32F37X) && ! defined (STM32F30X)
- /*******************************************************************************
- * Function Name  : EXTI15_10_IRQHandler
-@@ -363,7 +365,7 @@ void EXTI15_10_IRQHandler(void)
+@@ -363,6 +366,7 @@
  }
  
  #endif /*STM32L1XX_HD*/
--
 +#endif
+ 
  /*******************************************************************************
  * Function Name  : USB_FS_WKUP_IRQHandler
- * Description    : This function handles USB WakeUp interrupt request.
-diff -purN a/usb_conf.h b/usb_conf.h
---- a/usb_conf.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_conf.h	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/stm32_it.h alles/stm32_it.h
+--- alles.orig/stm32_it.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/stm32_it.h	2014-11-14 22:31:31.000000000 +0100
+@@ -46,11 +46,12 @@
+ void SVC_Handler(void);
+ void DebugMon_Handler(void);
+ void PendSV_Handler(void);
+-void SysTick_Handler(void);
++//void SysTick_Handler(void);
+ void USB_LP_CAN1_RX0_IRQHandler(void);
+ void DMA1_Channel1_IRQHandler(void);
+ void EXTI9_5_IRQHandler(void);
+ void EXTI15_10_IRQHandler(void);
++void USBWakeUp_IRQHandler(void);
+ 
+ #endif /* __STM32_IT_H */
+ 
+diff -Nru alles.orig/usb_conf.h alles/usb_conf.h
+--- alles.orig/usb_conf.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_conf.h	2014-11-14 21:19:32.000000000 +0100
 @@ -57,7 +57,7 @@
  /* EP1  */
  /* tx buffer base address */
@@ -343,9 +291,9 @@ diff -purN a/usb_conf.h b/usb_conf.h
                   | CNTR_ESOFM | CNTR_RESETM )
  
  /* CTR service routines */
-diff -purN a/usb_desc.c b/usb_desc.c
---- a/usb_desc.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_desc.c	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/usb_desc.c alles/usb_desc.c
+--- alles.orig/usb_desc.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_desc.c	2014-11-15 00:59:32.000000000 +0100
 @@ -41,7 +41,7 @@
  /* USB Standard Device Descriptor */
  const uint8_t CustomHID_DeviceDescriptor[CUSTOMHID_SIZ_DEVICE_DESC] =
@@ -355,7 +303,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      USB_DEVICE_DESCRIPTOR_TYPE, /*bDescriptorType*/
      0x00,                       /*bcdUSB */
      0x02,
-@@ -79,7 +79,7 @@ const uint8_t CustomHID_ConfigDescriptor
+@@ -79,7 +79,7 @@
      0x01,         /* bConfigurationValue: Configuration value */
      0x00,         /* iConfiguration: Index of string descriptor describing
                                   the configuration*/
@@ -364,7 +312,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      0x32,         /* MaxPower 100 mA: this current is used for detecting Vbus */
  
      /************** Descriptor of Custom HID interface ****************/
-@@ -101,7 +101,7 @@ const uint8_t CustomHID_ConfigDescriptor
+@@ -101,7 +101,7 @@
      0x01,
      0x00,         /* bCountryCode: Hardware target country */
      0x01,         /* bNumDescriptors: Number of HID class descriptors to follow */
@@ -373,7 +321,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      CUSTOMHID_SIZ_REPORT_DESC,/* wItemLength: Total length of Report descriptor */
      0x00,
      /******************** Descriptor of Custom HID endpoints ******************/
-@@ -111,20 +111,18 @@ const uint8_t CustomHID_ConfigDescriptor
+@@ -111,20 +111,18 @@
  
      0x81,          /* bEndpointAddress: Endpoint Address (IN) */
      0x03,          /* bmAttributes: Interrupt endpoint */
@@ -399,7 +347,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      /* 41 */
    }
    ; /* CustomHID_ConfigDescriptor */
-@@ -135,9 +133,8 @@ const uint8_t CustomHID_ReportDescriptor
+@@ -135,9 +133,8 @@
      0xa1, 0x01,            /* COLLECTION (Application)       */            
      /* 6 */
      
@@ -410,7 +358,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      0x15, 0x00,            /*     LOGICAL_MINIMUM (0)        */          
      0x25, 0x01,            /*     LOGICAL_MAXIMUM (1)        */           
      0x75, 0x08,            /*     REPORT_SIZE (8)            */        
-@@ -145,13 +142,12 @@ const uint8_t CustomHID_ReportDescriptor
+@@ -145,13 +142,12 @@
      0xB1, 0x82,             /*    FEATURE (Data,Var,Abs,Vol) */     
  
      0x85, 0x01,            /*     REPORT_ID (1)              */
@@ -426,7 +374,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
      0x15, 0x00,            /*     LOGICAL_MINIMUM (0)        */          
      0x25, 0x01,            /*     LOGICAL_MAXIMUM (1)        */           
      0x75, 0x08,            /*     REPORT_SIZE (8)            */        
-@@ -159,89 +155,29 @@ const uint8_t CustomHID_ReportDescriptor
+@@ -159,89 +155,29 @@
      0xB1, 0x82,             /*    FEATURE (Data,Var,Abs,Vol) */     
  
      0x85, 0x02,            /*     REPORT_ID (2)              */
@@ -525,7 +473,7 @@ diff -purN a/usb_desc.c b/usb_desc.c
  
      0xc0 	          /*     END_COLLECTION	             */
    }; /* CustomHID_ReportDescriptor */
-@@ -270,16 +206,16 @@ const uint8_t CustomHID_StringProduct[CU
+@@ -270,9 +206,9 @@
    {
      CUSTOMHID_SIZ_STRING_PRODUCT,          /* bLength */
      USB_STRING_DESCRIPTOR_TYPE,        /* bDescriptorType */
@@ -538,18 +486,14 @@ diff -purN a/usb_desc.c b/usb_desc.c
    };
  uint8_t CustomHID_StringSerial[CUSTOMHID_SIZ_STRING_SERIAL] =
    {
-     CUSTOMHID_SIZ_STRING_SERIAL,           /* bLength */
-     USB_STRING_DESCRIPTOR_TYPE,        /* bDescriptorType */
--    'S', 0, 'T', 0, 'M', 0,'3', 0,'2', 0
-+    'S', 0, 'T', 0, 'M', 0,'3', 0,'2', 0 , '0', 0, '0', 0, '0', 0,'0', 0,'0', 0,
-+    '0', 0, '0', 0
+@@ -282,4 +218,3 @@
    };
  
  /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 -
-diff -purN a/usb_desc.h b/usb_desc.h
---- a/usb_desc.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_desc.h	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/usb_desc.h alles/usb_desc.h
+--- alles.orig/usb_desc.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_desc.h	2014-11-15 00:49:57.773337800 +0100
 @@ -31,6 +31,7 @@
  #define __USB_DESC_H
  
@@ -571,8 +515,9 @@ diff -purN a/usb_desc.h b/usb_desc.h
  #define CUSTOMHID_SIZ_STRING_LANGID             4
  #define CUSTOMHID_SIZ_STRING_VENDOR             38
 -#define CUSTOMHID_SIZ_STRING_PRODUCT            32
+-#define CUSTOMHID_SIZ_STRING_SERIAL             26
 +#define CUSTOMHID_SIZ_STRING_PRODUCT            44
- #define CUSTOMHID_SIZ_STRING_SERIAL             26
++#define CUSTOMHID_SIZ_STRING_SERIAL             26
  
  #define STANDARD_ENDPOINT_DESC_SIZE             0x09
  
@@ -584,9 +529,9 @@ diff -purN a/usb_desc.h b/usb_desc.h
  /* Exported functions ------------------------------------------------------- */
  extern const uint8_t CustomHID_DeviceDescriptor[CUSTOMHID_SIZ_DEVICE_DESC];
  extern const uint8_t CustomHID_ConfigDescriptor[CUSTOMHID_SIZ_CONFIG_DESC];
-diff -purN a/usb_endp.c b/usb_endp.c
---- a/usb_endp.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_endp.c	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/usb_endp.c alles/usb_endp.c
+--- alles.orig/usb_endp.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_endp.c	2014-11-15 01:51:51.034984400 +0100
 @@ -29,6 +29,7 @@
  /* Includes ------------------------------------------------------------------*/
  
@@ -595,7 +540,7 @@ diff -purN a/usb_endp.c b/usb_endp.c
  #include "usb_lib.h"
  #include "usb_istr.h"
  
-@@ -37,7 +38,10 @@
+@@ -37,7 +38,11 @@
  /* Private macro -------------------------------------------------------------*/
  /* Private variables ---------------------------------------------------------*/
  uint8_t Receive_Buffer[2];
@@ -603,10 +548,11 @@ diff -purN a/usb_endp.c b/usb_endp.c
  extern __IO uint8_t PrevXferComplete;
 +extern uint16_t USB_HID_RecData_Len;
 +extern uint8_t USB_HID_RecData_Ready;
++
  /* Private function prototypes -----------------------------------------------*/
  /* Private functions ---------------------------------------------------------*/
  /*******************************************************************************
-@@ -49,6 +53,7 @@ extern __IO uint8_t PrevXferComplete;
+@@ -49,6 +54,7 @@
  *******************************************************************************/
  void EP1_OUT_Callback(void)
  {
@@ -614,12 +560,12 @@ diff -purN a/usb_endp.c b/usb_endp.c
    BitAction Led_State;
  
    /* Read received data (2 bytes) */  
-@@ -113,7 +118,11 @@ void EP1_OUT_Callback(void)
-     STM_EVAL_LEDOff(LED4); 
+@@ -114,6 +120,12 @@
      break;
    }
-- 
+  
 +#endif
++
 +  /* Read received data */
 +  USB_HID_RecData_Len = USB_SIL_Read(EP1_OUT, USB_HID_OUT_BUF);
 +  USB_HID_RecData_Ready=1;
@@ -627,10 +573,10 @@ diff -purN a/usb_endp.c b/usb_endp.c
    SetEPRxStatus(ENDP1, EP_RX_VALID);
   
  }
-diff -purN a/usb_istr.c b/usb_istr.c
---- a/usb_istr.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_istr.c	2014-11-14 18:13:53.700521744 +0100
-@@ -140,7 +140,7 @@ void USB_Istr(void)
+diff -Nru alles.orig/usb_istr.c alles/usb_istr.c
+--- alles.orig/usb_istr.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_istr.c	2014-11-14 20:45:02.000000000 +0100
+@@ -140,7 +140,7 @@
    {
  
      /* check if SUSPEND is possible */
@@ -639,9 +585,9 @@ diff -purN a/usb_istr.c b/usb_istr.c
      {
        Suspend();
      }
-diff -purN a/usb_prop.c b/usb_prop.c
---- a/usb_prop.c	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_prop.c	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/usb_prop.c alles/usb_prop.c
+--- alles.orig/usb_prop.c	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_prop.c	2014-11-15 06:23:52.936683200 +0100
 @@ -43,7 +43,7 @@
  uint32_t ProtocolValue;
  __IO uint8_t EXTI_Enable;
@@ -651,7 +597,7 @@ diff -purN a/usb_prop.c b/usb_prop.c
  /* -------------------------------------------------------------------------- */
  /*  Structures initializations */
  /* -------------------------------------------------------------------------- */
-@@ -177,8 +177,8 @@ void CustomHID_Reset(void)
+@@ -177,8 +177,8 @@
    SetEPType(ENDP1, EP_INTERRUPT);
    SetEPTxAddr(ENDP1, ENDP1_TXADDR);
    SetEPRxAddr(ENDP1, ENDP1_RXADDR);
@@ -662,26 +608,27 @@ diff -purN a/usb_prop.c b/usb_prop.c
    SetEPRxStatus(ENDP1, EP_RX_VALID);
    SetEPTxStatus(ENDP1, EP_TX_NAK);
  
-@@ -196,7 +196,8 @@ void CustomHID_Reset(void)
+@@ -196,7 +196,9 @@
  *******************************************************************************/
  void CustomHID_SetConfiguration(void)
  {
 -  if (pInformation->Current_Configuration != 0)
-+  DEVICE_INFO *pInfo = &Device_Info;
-+  if (pInfo->Current_Configuration != 0)
++//  if (pInformation->Current_Configuration != 0)
++	DEVICE_INFO *pInfo = &Device_Info;
++	if (pInfo->Current_Configuration != 0)
    {
      /* Device configured */
      bDeviceState = CONFIGURED;
-@@ -207,7 +208,7 @@ void CustomHID_SetConfiguration(void)
+@@ -207,7 +209,7 @@
  #elif defined (STM32F30X)
      ADC_StartConversion(ADC1);
  #else
 -    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
-+    //ADC_SoftwareStartConvCmd(ADC1, ENABLE);
++//    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
  #endif /* STM32L1XX_XD */
    }
  }
-@@ -231,6 +232,7 @@ void CustomHID_SetDeviceAddress (void)
+@@ -231,6 +233,7 @@
  *******************************************************************************/
  void CustomHID_Status_In(void)
  {  
@@ -689,7 +636,7 @@ diff -purN a/usb_prop.c b/usb_prop.c
    BitAction Led_State;
    
    if (Report_Buf[1] == 0)
-@@ -293,6 +295,7 @@ void CustomHID_Status_In(void)
+@@ -293,6 +296,7 @@
      STM_EVAL_LEDOff(LED4); 
      break;
    }
@@ -697,14 +644,14 @@ diff -purN a/usb_prop.c b/usb_prop.c
  }
  
  /*******************************************************************************
-@@ -317,14 +320,14 @@ RESULT CustomHID_Data_Setup(uint8_t Requ
+@@ -317,14 +321,14 @@
  {
    uint8_t *(*CopyRoutine)(uint16_t);
    
 -  if (pInformation->USBwIndex != 0) 
 -    return USB_UNSUPPORT;    
-+  //if (pInformation->USBwIndex != 0) 
-+  //  return USB_UNSUPPORT;    
++//  if (pInformation->USBwIndex != 0)
++//    return USB_UNSUPPORT;
    
    CopyRoutine = NULL;
    
@@ -715,7 +662,7 @@ diff -purN a/usb_prop.c b/usb_prop.c
    {
      
      if (pInformation->USBwValue1 == REPORT_DESCRIPTOR)
-@@ -377,7 +380,7 @@ uint8_t *CustomHID_SetReport_Feature(uin
+@@ -377,7 +381,7 @@
  {
    if (Length == 0)
    {
@@ -724,7 +671,7 @@ diff -purN a/usb_prop.c b/usb_prop.c
      return NULL;
    }
    else
-@@ -441,7 +444,7 @@ uint8_t *CustomHID_GetConfigDescriptor(u
+@@ -441,7 +445,7 @@
  uint8_t *CustomHID_GetStringDescriptor(uint16_t Length)
  {
    uint8_t wValue0 = pInformation->USBwValue0;
@@ -733,9 +680,9 @@ diff -purN a/usb_prop.c b/usb_prop.c
    {
      return NULL;
    }
-diff -purN a/usb_pwr.h b/usb_pwr.h
---- a/usb_pwr.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/usb_pwr.h	2014-11-14 18:13:53.700521744 +0100
+diff -Nru alles.orig/usb_pwr.h alles/usb_pwr.h
+--- alles.orig/usb_pwr.h	2013-01-21 18:27:28.000000000 +0100
++++ alles/usb_pwr.h	2014-11-15 00:45:02.162409600 +0100
 @@ -30,6 +30,7 @@
  #define __USB_PWR_H
  
