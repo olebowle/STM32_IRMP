@@ -362,6 +362,7 @@ int8_t set_handler(uint8_t *buf)
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
 	uint8_t idx;
+	uint8_t tmp[SIZEOF_IR * sizeof(uint16_t)];
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
@@ -371,10 +372,18 @@ int8_t set_handler(uint8_t *buf)
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
 		eeprom_store(idx, &buf[5]);
 		ret += SIZEOF_IR * sizeof(uint16_t);
+		/* validate stored value in eeprom */
+		eeprom_restore(tmp, idx);
+		if (memcmp(&buf[5], tmp, sizeof(tmp)))
+			ret = -1;
 		break;
 	case CMD_WAKE:
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
 		eeprom_store(idx, &buf[4]);
+		/* validate stored value in eeprom */
+		eeprom_restore(tmp, idx);
+		if (memcmp(&buf[4], tmp, sizeof(tmp)))
+			ret = -1;
 		break;
 	default:
 		ret = -1;
