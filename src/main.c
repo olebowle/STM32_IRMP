@@ -289,13 +289,12 @@ void SysTick_Handler(void)
 	}
 }
 
-/* Val -> buf[BufIdx...BufIdx+3] */
-void uint32_to_buf(uint32_t Val, uint8_t BufIdx)
+void uint32_to_buf(uint8_t *buf, uint32_t val)
 {
-	buf[BufIdx] = ((Val) >> 24) & 0xFF;
-	buf[BufIdx+1] = ((Val) >> 16) & 0xFF;
-	buf[BufIdx+2] = ((Val) >> 8) & 0xFF;
-	buf[BufIdx+3] = Val & 0xFF;
+	buf[0] = ((val) >> 24) & 0xFF;
+	buf[1] = ((val) >> 16) & 0xFF;
+	buf[2] = ((val) >> 8) & 0xFF;
+	buf[3] = val & 0xFF;
 }
 
 void Wakeup(void)
@@ -337,7 +336,7 @@ int8_t get_handler(uint8_t *buf)
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
 		/* AlarmValue -> buf[3-6] */
-		uint32_to_buf(AlarmValue, 3);
+		uint32_to_buf(&buf[3], AlarmValue);
 		ret += sizeof(AlarmValue);
 		break;
 	/* TODO: slots */
@@ -498,7 +497,7 @@ int main(void)
 						/* loopIRData -> buf[0-5] */
 						IRData_to_buf(&loopIRData);
 						/* timestamp -> buf[6-9] */
-						uint32_to_buf(timestamp, 6);
+						uint32_to_buf(&buf[6], timestamp);
 						USB_HID_SendData(buf,11);
 					}
 				}
@@ -509,7 +508,7 @@ int main(void)
 			/* myIRData -> buf[0-5] */
 			IRData_to_buf(&myIRData);
 			/* timestamp -> buf[6-9] */
-			uint32_to_buf(timestamp, 6);
+			uint32_to_buf(&buf[6], timestamp);
 			USB_HID_SendData(buf, 11);
 		}
 	}
