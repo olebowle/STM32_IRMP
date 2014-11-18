@@ -238,7 +238,7 @@ void eeprom_restore(uint8_t *buf, uint8_t virt_addr)
  * irmplircd expects dummy as first byte (Report ID),
  * so start with buf[0], adapt endianness for irmplircd
  */
-void IRData_to_buf(IRMP_DATA *IRData)
+void IRData_to_buf(uint8_t *buf, IRMP_DATA *IRData)
 {
 	buf[0] = IRData->protocol;
 	buf[2] = ((IRData->address) >> 8) & 0xFF;
@@ -248,17 +248,17 @@ void IRData_to_buf(IRMP_DATA *IRData)
 	buf[5] = IRData->flags;
 }
 
-/* buf[BufIdx...(BufIdx+5)] -> IRData */
-void buf_to_IRData(uint8_t buf[6], uint8_t BufIdx, IRMP_DATA *IRData)
+/* buf[0...5] -> IRData */
+void buf_to_IRData(IRMP_DATA *IRData, uint8_t *buf)
 {
-	IRData->protocol = buf[BufIdx];
-	IRData->address = ((buf[(BufIdx + 1)] << 8) | (buf[(BufIdx + 2)]));
-	IRData->command = ((buf[(BufIdx + 3)] << 8) | (buf[(BufIdx + 4)]));
-	IRData->flags = buf[(BufIdx + 5)];
+	IRData->protocol = buf[0];
+	IRData->address = (buf[1] << 8) | buf[2];
+	IRData->command = (buf[3] << 8) | buf[4];
+	IRData->flags = buf[5];
 }
 
 /* buf[0-5] <-> IRData */
-uint8_t cmp_buf_IRData(uint8_t buf[6], IRMP_DATA *IRData)
+uint8_t cmp_buf_IRData(uint8_t *buf, IRMP_DATA *IRData)
 {
 	return	IRData->protocol == buf[0] && \
 		IRData->address == ((buf[1] << 8) | buf[2]) && \
@@ -320,7 +320,7 @@ void store_new_wakeup(void)
 	delay_ms(5000);
 	if (irmp_get_data(&wakeup_IRData))
 	/* wakeup_IRData -> buf[0-5] */
-	IRData_to_buf(&wakeup_IRData);
+	IRData_to_buf(buf, &wakeup_IRData);
 	/* set flags to 0 */
 	buf[5] = 0;
 	/* buf[0-5] -> eeprom[0-2] */
@@ -485,7 +485,7 @@ int main(void)
 					/* ?? 100 too small, 125 ok, RC5 is 114ms */
 					delay_ms(115);
 					/* send_buf[k] -> sendIRData */
-					buf_to_IRData(send_buf[k], 0, &sendIRData);
+					buf_to_IRData(&sendIRData, send_buf[k]);
 					/* 0|1: don't|do wait until send finished */
 					irsnd_send_data(&sendIRData, 1);
 					yellow_on();
@@ -495,7 +495,7 @@ int main(void)
 					if (irmp_get_data(&loopIRData)) {
 						memset(buf, 0, sizeof(buf));
 						/* loopIRData -> buf[0-5] */
-						IRData_to_buf(&loopIRData);
+						IRData_to_buf(buf, &loopIRData);
 						/* timestamp -> buf[6-9] */
 						uint32_to_buf(&buf[6], timestamp);
 						USB_HID_SendData(buf,11);
@@ -506,7 +506,7 @@ int main(void)
 			/* send IR-data via USB-HID */
 			memset(buf, 0, sizeof(buf));
 			/* myIRData -> buf[0-5] */
-			IRData_to_buf(&myIRData);
+			IRData_to_buf(buf, &myIRData);
 			/* timestamp -> buf[6-9] */
 			uint32_to_buf(&buf[6], timestamp);
 			USB_HID_SendData(buf, 11);
