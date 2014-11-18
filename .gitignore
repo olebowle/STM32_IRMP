@@ -4,3 +4,4 @@
 *.o
 *.tar.gz
 *.zip
+ext/*
