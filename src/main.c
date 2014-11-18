@@ -211,7 +211,7 @@ void toggle_LED(void)
  * 2 halfwords in reverse order, little endian
  */
 
-void eeprom_store(uint8_t *buf, uint8_t virt_addr)
+void eeprom_store(uint8_t virt_addr, uint8_t *buf)
 {
 	/* reverse order */
 	EE_WriteVariable(virt_addr,	(buf[1] << 8) | buf[0]);
@@ -324,7 +324,7 @@ void store_new_wakeup(void)
 	/* set flags to 0 */
 	buf[5] = 0;
 	/* buf[0-5] -> eeprom[0-2] */
-	eeprom_store(buf, 0);
+	eeprom_store(0, buf);
 	toggle_LED();
 }
 
@@ -332,6 +332,7 @@ int8_t get_handler(uint8_t *buf)
 {
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
+	uint8_t idx;
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
@@ -339,10 +340,15 @@ int8_t get_handler(uint8_t *buf)
 		uint32_to_buf(&buf[3], AlarmValue);
 		ret += sizeof(AlarmValue);
 		break;
-	/* TODO: slots */
+	case CMD_MACRO:
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		eeprom_restore(&buf[3], idx);
+		ret += SIZEOF_IR * sizeof(uint16_t);
+		break;
 	case CMD_WAKE:
-		/*wakeup_buf -> buf[3-8]*/
-		memcpy(&buf[3], &wakeup_buf, sizeof(wakeup_buf));
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		eeprom_restore(&buf[3], idx);
+		ret += SIZEOF_IR * sizeof(uint16_t);
 		break;
 	default:
 		ret = -1;
@@ -355,16 +361,20 @@ int8_t set_handler(uint8_t *buf)
 {
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
+	uint8_t idx;
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
 		AlarmValue = (buf[3]<<24)|(buf[4]<<16)|(buf[5]<<8)|buf[6];
 		break;
-	/* TODO: slots, buf[3-8]->buf[3-6] */
+	case CMD_MACRO:
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		eeprom_store(idx, &buf[5]);
+		ret += SIZEOF_IR * sizeof(uint16_t);
+		break;
 	case CMD_WAKE:
-		/* buf[3-8] -> eeprom[0-2] */
-		eeprom_store(&buf[3], 0);
-		memcpy(&wakeup_buf, &buf[3], sizeof(wakeup_buf));
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		eeprom_store(idx, &buf[4]);
 		break;
 	default:
 		ret = -1;
@@ -377,14 +387,21 @@ int8_t reset_handler(uint8_t *buf)
 {
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
+	uint8_t idx;
+	uint8_t zeros[6] = {0};
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
 		AlarmValue = 0xFFFFFFFF;
 		break;
-	/* TODO: slots, buf[3-8]->buf[3-6] */
+	case CMD_MACRO:
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		eeprom_store(idx, zeros);
+		ret += SIZEOF_IR * sizeof(uint16_t);
+		break;
 	case CMD_WAKE:
-		/*TODO*/
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		eeprom_store(idx, zeros);
 		break;
 	default:
 		ret = -1;
