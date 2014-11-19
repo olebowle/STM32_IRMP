@@ -308,22 +308,18 @@ void Wakeup(void)
 	fast_toggle();
 }
 
-/* put wakeup IRData into buf and wakeup eeprom */
+/* put wakeup IRData into eeprom */
 void store_new_wakeup(void)
 {
-	uint8_t buf[6];
 	IRMP_DATA wakeup_IRData;
 	toggle_LED();
 	systicks = 0;
 	/* 5 seconds to press button on remote */
 	delay_ms(5000);
 	if (irmp_get_data(&wakeup_IRData)) {
-		/* wakeup_IRData -> buf */
-		IRData_to_buf(buf, &wakeup_IRData);
-		/* set flags to 0 */
-		buf[5] = 0;
+		wakeup_IRData.flags = 0;
 		/* store wakeup-code learned by remote in first wakeup slot */
-		eeprom_store((MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS, buf);
+		eeprom_store((MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS, (uint8_t *) &wakeup_IRData);
 		toggle_LED();
 	}
 }
@@ -337,7 +333,7 @@ int8_t get_handler(uint8_t *buf)
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
 		/* AlarmValue -> buf[3-6] */
-		uint32_to_buf(&buf[3], AlarmValue);
+		memcpy(&buf[3], &AlarmValue, sizeof(AlarmValue));
 		ret += sizeof(AlarmValue);
 		break;
 	case CMD_MACRO:
@@ -426,7 +422,7 @@ void check_ir_wakeup(IRMP_DATA *ir) {
 	for (i=0; i<WAKE_SLOTS; i++) {
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * i;
 		eeprom_restore(buf, idx);
-		if (cmp_buf_IRData(buf, ir))
+		if (!memcmp(buf, ir, sizeof(ir)))
 			Wakeup();
 	}
 }
@@ -510,7 +506,7 @@ int main(void)
 			check_ir_wakeup(&myIRData);
 
 			/* trigger send IR-data? */
-			if (cmp_buf_IRData(trigger_send_buf, &myIRData)) {
+			if (0 && cmp_buf_IRData(trigger_send_buf, &myIRData)) {
 				for (k=0; k < SND_MAX; k++) {
 					/* ?? 100 too small, 125 ok, RC5 is 114ms */
 					delay_ms(115);
@@ -536,10 +532,10 @@ int main(void)
 			/* send IR-data via USB-HID */
 			memset(buf, 0, sizeof(buf));
 			/* myIRData -> buf[0-5] */
-			IRData_to_buf(buf, &myIRData);
+			memcpy(buf, &myIRData, sizeof(myIRData));
 			/* timestamp -> buf[6-9] */
-			uint32_to_buf(&buf[6], timestamp);
-			USB_HID_SendData(buf, 11);
+			memcpy(&buf[7], &timestamp, sizeof(timestamp));
+			USB_HID_SendData(buf, 10);
 		}
 	}
 }
