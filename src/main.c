@@ -534,7 +534,7 @@ int main(void)
 			/* myIRData -> buf[0-5] */
 			memcpy(buf, &myIRData, sizeof(myIRData));
 			/* timestamp -> buf[6-9] */
-			memcpy(&buf[7], &timestamp, sizeof(timestamp));
+			memcpy(&buf[6], &timestamp, sizeof(timestamp));
 			USB_HID_SendData(buf, 10);
 		}
 	}
