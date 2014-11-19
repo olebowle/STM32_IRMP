@@ -393,7 +393,7 @@ int8_t reset_handler(uint8_t *buf)
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
 	uint8_t idx;
-	uint8_t zeros[6] = {0};
+	uint8_t zeros[SIZEOF_IR * sizeof(uint16_t)] = {0};
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
@@ -417,7 +417,7 @@ int8_t reset_handler(uint8_t *buf)
 /* is received ir-code in one of the wakeup-slots? wakeup if true */
 void check_ir_wakeup(IRMP_DATA *ir) {
 	uint8_t i, idx;
-	uint8_t buf[6];
+	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
 
 	for (i=0; i<WAKE_SLOTS; i++) {
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * i;
@@ -534,8 +534,8 @@ int main(void)
 			/* myIRData -> buf[0-5] */
 			memcpy(buf, &myIRData, sizeof(myIRData));
 			/* timestamp -> buf[6-9] */
-			memcpy(&buf[6], &timestamp, sizeof(timestamp));
-			USB_HID_SendData(buf, 10);
+			memcpy(&buf[sizeof(myIRData)], &timestamp, sizeof(timestamp));
+			USB_HID_SendData(buf, sizeof(myIRData) + sizeof(timestamp));
 		}
 	}
 }

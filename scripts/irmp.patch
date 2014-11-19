@@ -1,6 +1,6 @@
-diff -ur a/irmpconfig.h b/irmpconfig.h
+diff -purN a/irmpconfig.h b/irmpconfig.h
 --- a/irmpconfig.h	2014-09-15 14:38:29.000000000 +0200
-+++ b/irmpconfig.h	2014-11-14 13:27:07.538433785 +0100
++++ b/irmpconfig.h	2014-11-18 19:43:12.880365000 +0100
 @@ -56,17 +56,17 @@
  #define IRMP_SUPPORT_KASEIKYO_PROTOCOL          1       // Kaseikyo             >= 10000                 ~250 bytes
  
@@ -43,9 +43,21 @@ diff -ur a/irmpconfig.h b/irmpconfig.h
  
  /*---------------------------------------------------------------------------------------------------------------------------------------------------
   * Change hardware pin here for Stellaris ARM Cortex M4
-diff -ur a/irsndconfig.h b/irsndconfig.h
+diff -purN a/irmpsystem.h b/irmpsystem.h
+--- a/irmpsystem.h	2014-09-15 12:46:02.000000000 +0200
++++ b/irmpsystem.h	2014-11-19 17:15:54.069526000 +0100
+@@ -128,7 +128,7 @@ typedef unsigned short
+ #  define FALSE                         0
+ #endif
+ 
+-typedef struct
++typedef struct __attribute__ ((__packed__))
+ {
+   uint8_t                               protocol;                                   // protocol, i.e. NEC_PROTOCOL
+   uint16_t                              address;                                    // address
+diff -purN a/irsndconfig.h b/irsndconfig.h
 --- a/irsndconfig.h	2014-09-15 12:46:02.000000000 +0200
-+++ b/irsndconfig.h	2014-11-14 13:24:05.893187162 +0100
++++ b/irsndconfig.h	2014-11-18 19:43:12.880365000 +0100
 @@ -47,17 +47,17 @@
  #define IRSND_SUPPORT_KASEIKYO_PROTOCOL         1       // Kaseikyo             >= 10000                 ~300 bytes
  
