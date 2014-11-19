@@ -72,8 +72,6 @@ enum __attribute__ ((__packed__)) status {
 
 __IO uint8_t PrevXferComplete = 1;
 uint8_t PA9_state = 0;
-uint8_t buf[HID_OUT_BUFFER_SIZE];
-uint8_t wakeup_buf[6];
 uint32_t timestamp = 0;
 uint32_t AlarmValue = 0xFFFFFFFF;
 volatile unsigned int systicks = 0;
@@ -313,19 +311,21 @@ void Wakeup(void)
 /* put wakeup IRData into buf and wakeup eeprom */
 void store_new_wakeup(void)
 {
+	uint8_t buf[6];
 	IRMP_DATA wakeup_IRData;
 	toggle_LED();
 	systicks = 0;
 	/* 5 seconds to press button on remote */
 	delay_ms(5000);
-	if (irmp_get_data(&wakeup_IRData))
-	/* wakeup_IRData -> buf[0-5] */
-	IRData_to_buf(buf, &wakeup_IRData);
-	/* set flags to 0 */
-	buf[5] = 0;
-	/* buf[0-5] -> eeprom[0-2] */
-	eeprom_store(0, buf);
-	toggle_LED();
+	if (irmp_get_data(&wakeup_IRData)) {
+		/* wakeup_IRData -> buf */
+		IRData_to_buf(buf, &wakeup_IRData);
+		/* set flags to 0 */
+		buf[5] = 0;
+		/* store wakeup-code learned by remote in first wakeup slot */
+		eeprom_store((MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS, buf);
+		toggle_LED();
+	}
 }
 
 int8_t get_handler(uint8_t *buf)
@@ -418,9 +418,23 @@ int8_t reset_handler(uint8_t *buf)
 	return ret;
 }
 
+/* is received ir-code in one of the wakeup-slots? wakeup if true */
+void check_ir_wakeup(IRMP_DATA *ir) {
+	uint8_t i, idx;
+	uint8_t buf[6];
+
+	for (i=0; i<WAKE_SLOTS; i++) {
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * i;
+		eeprom_restore(buf, idx);
+		if (cmp_buf_IRData(buf, ir))
+			Wakeup();
+	}
+}
+
 int main(void)
 {
 	uint8_t k, trigger_send_buf[6], send_buf[SND_MAX][6];
+	uint8_t buf[HID_OUT_BUFFER_SIZE];
 	IRMP_DATA myIRData, loopIRData, sendIRData, lastIRData = { 0, 0, 0, 0};
 	int8_t ret;
 
@@ -435,15 +449,8 @@ int main(void)
 	EE_Init();
 	Systick_Init();
 
-	/* read wakeup IR-data from eeprom: eeprom[0-2] -> wakeup_buf */
-	eeprom_restore(wakeup_buf, 0);
-
 	/* read trigger IR-data from eeprom: eeprom[3-5] -> trigger_send_buf */
 	eeprom_restore(trigger_send_buf, 3);
-
-	/* read IR-data to send from eeprom: eeprom[6-8] -> send_buf[0], eeprom[9-11] -> send_buf[1], etc */
-	for (k=0; k<SND_MAX; k++)
-		eeprom_restore(send_buf[k], 6+k*3);
 
 	while (1) {
 		if (!AlarmValue)
@@ -454,7 +461,6 @@ int main(void)
 		if (!GPIO_ReadInputDataBit(OUT_PORT, WAKEUP_RESET_PIN)) {
 			/* put wakeup IRData into buf and wakeup eeprom */
 			store_new_wakeup();
-			memcpy(wakeup_buf, buf, sizeof(wakeup_buf));
 		}
 #endif /* WAKEUP_RESET */
 
@@ -501,9 +507,7 @@ int main(void)
 				lastIRData.command = myIRData.command;
 			}
 
-			/* wakeup IR-data? */
-			if (cmp_buf_IRData(wakeup_buf, &myIRData))
-				Wakeup();
+			check_ir_wakeup(&myIRData);
 
 			/* trigger send IR-data? */
 			if (cmp_buf_IRData(trigger_send_buf, &myIRData)) {
