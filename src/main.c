@@ -149,6 +149,7 @@ void transmit_macro(uint8_t macro)
 		if (!memcmp(buf, &zeros, sizeof(zeros)))
 			break;
 		irsnd_send_data((IRMP_DATA *) buf, 1);
+		delay_ms(300);
 	}
 	/* reenable receiving of ir */
 	enable_ir_receiver(1);

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "config.h"
 #include "handler.h"
+#include "irsnd.h"
 
 int8_t get_handler(uint8_t *buf)
 {
@@ -40,6 +41,14 @@ int8_t set_handler(uint8_t *buf)
 	uint8_t tmp[SIZEOF_IR * sizeof(uint16_t)];
 
 	switch ((enum command) buf[2]) {
+	case CMD_EMIT:
+		/* disable receiving of ir, since we don't want to rx what we txed*/
+		enable_ir_receiver(0);
+		irsnd_send_data((IRMP_DATA *) &buf[3], 1);
+		delay_ms(300);
+		/* reenable receiving of ir */
+		enable_ir_receiver(1);
+		break;
 	case CMD_ALARM:
 		AlarmValue = (buf[3]<<24)|(buf[4]<<16)|(buf[5]<<8)|buf[6];
 		break;

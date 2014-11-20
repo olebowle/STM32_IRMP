@@ -26,6 +26,7 @@ extern uint32_t AlarmValue;
 
 void eeprom_store(uint8_t virt_addr, uint8_t *buf);
 void eeprom_restore(uint8_t *buf, uint8_t virt_addr);
+void enable_ir_receiver(uint8_t enable);
 
 int8_t get_handler(uint8_t *buf);
 int8_t set_handler(uint8_t *buf);
