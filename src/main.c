@@ -179,39 +179,6 @@ void eeprom_restore(uint8_t *buf, uint8_t virt_addr)
 	memcpy(&buf[4], &EE_Data, 2);
 }
 
-/*
- * IRData -> buf[0-5]
- * irmplircd expects dummy as first byte (Report ID),
- * so start with buf[0], adapt endianness for irmplircd
- */
-void IRData_to_buf(uint8_t *buf, IRMP_DATA *IRData)
-{
-	buf[0] = IRData->protocol;
-	buf[2] = ((IRData->address) >> 8) & 0xFF;
-	buf[1] = (IRData->address) & 0xFF;
-	buf[4] = ((IRData->command) >> 8) & 0xFF;
-	buf[3] = (IRData->command) & 0xFF;
-	buf[5] = IRData->flags;
-}
-
-/* buf[0...5] -> IRData */
-void buf_to_IRData(IRMP_DATA *IRData, uint8_t *buf)
-{
-	IRData->protocol = buf[0];
-	IRData->address = (buf[1] << 8) | buf[2];
-	IRData->command = (buf[3] << 8) | buf[4];
-	IRData->flags = buf[5];
-}
-
-/* buf[0-5] <-> IRData */
-uint8_t cmp_buf_IRData(uint8_t *buf, IRMP_DATA *IRData)
-{
-	return	IRData->protocol == buf[0] && \
-		IRData->address == ((buf[1] << 8) | buf[2]) && \
-		IRData->command == ((buf[3] << 8) | buf[4]) && \
-		IRData->flags == buf[5];
-}
-
 void Systick_Init(void)
 {
 	/* 1ms */
@@ -233,14 +200,6 @@ void SysTick_Handler(void)
 	} else {
 		i++;
 	}
-}
-
-void uint32_to_buf(uint8_t *buf, uint32_t val)
-{
-	buf[0] = ((val) >> 24) & 0xFF;
-	buf[1] = ((val) >> 16) & 0xFF;
-	buf[2] = ((val) >> 8) & 0xFF;
-	buf[3] = val & 0xFF;
 }
 
 void Wakeup(void)
