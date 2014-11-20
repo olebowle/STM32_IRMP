@@ -44,8 +44,6 @@
 #define WAKEUP_RESET_PIN GPIO_Pin_12
 #endif /* WAKEUP_RESET */
 
-#define SND_MAX 2
-
 #define ACCESS_COUNT 3
 enum __attribute__ ((__packed__)) access {
 	ACC_GET,
@@ -415,11 +413,11 @@ int8_t reset_handler(uint8_t *buf)
 }
 
 /* is received ir-code in one of the wakeup-slots? wakeup if true */
-void check_ir_wakeup(IRMP_DATA *ir) {
+void check_wakeups(IRMP_DATA *ir) {
 	uint8_t i, idx;
 	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
 
-	for (i=0; i<WAKE_SLOTS; i++) {
+	for (i=0; i < WAKE_SLOTS; i++) {
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * i;
 		eeprom_restore(buf, idx);
 		if (!memcmp(buf, ir, sizeof(ir)))
@@ -427,11 +425,52 @@ void check_ir_wakeup(IRMP_DATA *ir) {
 	}
 }
 
+void enable_ir_receiver(uint8_t enable)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Mode = enable ? GPIO_Mode_IN_FLOATING : GPIO_Mode_AIN;
+	GPIO_Init(OUT_PORT, &GPIO_InitStructure);
+}
+
+void transmit_macro(uint8_t macro)
+{
+	uint8_t i, idx;
+	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
+	uint8_t zeros[SIZEOF_IR * sizeof(uint16_t)] = {0};
+
+	/* disable receiving of ir, since we don't want to rx what we txed*/
+	enable_ir_receiver(0);
+	/* we start from 1, since we don't want to tx the trigger code of the macro*/
+	for (i=1; i < MACRO_DEPTH + 1; i++) {
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * macro + SIZEOF_IR * i;
+		eeprom_restore(buf, idx);
+		/* first encounter of zero in macro means end of macro */
+		if (!memcmp(buf, &zeros, sizeof(zeros)))
+			break;
+		irsnd_send_data((IRMP_DATA *) buf, 1);
+	}
+	/* reenable receiving of ir */
+	enable_ir_receiver(1);
+}
+
+/* is received ir-code (trigger) in one of the macro-slots? transmit_macro if true */
+void check_macros(IRMP_DATA *ir) {
+	uint8_t i, idx;
+	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
+
+	for (i=0; i < MACRO_SLOTS; i++) {
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * i;
+		eeprom_restore(buf, idx);
+		if (!memcmp(buf, ir, sizeof(ir)))
+			transmit_macro(i);
+	}
+}
+
 int main(void)
 {
-	uint8_t k, trigger_send_buf[6], send_buf[SND_MAX][6];
 	uint8_t buf[HID_OUT_BUFFER_SIZE];
-	IRMP_DATA myIRData, loopIRData, sendIRData, lastIRData = { 0, 0, 0, 0};
+	IRMP_DATA myIRData, lastIRData = { 0, 0, 0, 0};
 	int8_t ret;
 
 	LED_Switch_init();
@@ -444,9 +483,6 @@ int main(void)
 	FLASH_Unlock();
 	EE_Init();
 	Systick_Init();
-
-	/* read trigger IR-data from eeprom: eeprom[3-5] -> trigger_send_buf */
-	eeprom_restore(trigger_send_buf, 3);
 
 	while (1) {
 		if (!AlarmValue)
@@ -503,31 +539,9 @@ int main(void)
 				lastIRData.command = myIRData.command;
 			}
 
-			check_ir_wakeup(&myIRData);
+			check_wakeups(&myIRData);
 
-			/* trigger send IR-data? */
-			if (0 && cmp_buf_IRData(trigger_send_buf, &myIRData)) {
-				for (k=0; k < SND_MAX; k++) {
-					/* ?? 100 too small, 125 ok, RC5 is 114ms */
-					delay_ms(115);
-					/* send_buf[k] -> sendIRData */
-					buf_to_IRData(&sendIRData, send_buf[k]);
-					/* 0|1: don't|do wait until send finished */
-					irsnd_send_data(&sendIRData, 1);
-					yellow_on();
-					/* ?? */
-					delay_ms(300);
-					/* receive sent by myself too, TODO */
-					if (irmp_get_data(&loopIRData)) {
-						memset(buf, 0, sizeof(buf));
-						/* loopIRData -> buf[0-5] */
-						IRData_to_buf(buf, &loopIRData);
-						/* timestamp -> buf[6-9] */
-						uint32_to_buf(&buf[6], timestamp);
-						USB_HID_SendData(buf,11);
-					}
-				}
-			}
+			check_macros(&myIRData);
 
 			/* send IR-data via USB-HID */
 			memset(buf, 0, sizeof(buf));
