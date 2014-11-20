@@ -68,7 +68,7 @@ diff -purN a/eeprom.c b/eeprom.c
          {
 diff -purN a/eeprom.h b/eeprom.h
 --- a/eeprom.h	2009-08-04 17:25:52.000000000 +0200
-+++ b/eeprom.h	2014-11-18 14:31:09.720668000 +0100
++++ b/eeprom.h	2014-11-20 14:53:25.469089000 +0100
 @@ -35,8 +35,8 @@
  #endif
  
@@ -80,16 +80,12 @@ diff -purN a/eeprom.h b/eeprom.h
  
  /* Pages 0 and 1 base and end addresses */
  #define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))
-@@ -65,7 +65,11 @@
+@@ -65,7 +65,7 @@
  #define PAGE_FULL               ((uint8_t)0x80)
  
  /* Variables' number */
 -#define NumbOfVar               ((uint8_t)0x03)
-+#define MACRO_SLOTS 8
-+#define MACRO_DEPTH 8
-+#define WAKE_SLOTS  8
-+#define SIZEOF_IR   3
-+#define NumbOfVar   ((uint8_t) (((MACRO_DEPTH + 1) * MACRO_SLOTS + WAKE_SLOTS) * 3))
++#define NumbOfVar ((uint8_t) (((MACRO_DEPTH + 1) * MACRO_SLOTS + WAKE_SLOTS) * SIZEOF_IR))
  
  /* Exported types ------------------------------------------------------------*/
  /* Exported macro ------------------------------------------------------------*/

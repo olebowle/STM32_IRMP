@@ -1,6 +1,6 @@
 diff -purN a/stm32f10x_conf.h b/stm32f10x_conf.h
---- a/stm32f10x_conf.h	2013-01-21 19:27:28.000000000 +0100
-+++ b/stm32f10x_conf.h	2014-11-16 11:57:31.287754218 +0100
+--- a/stm32f10x_conf.h	2013-01-21 19:27:27.000000000 +0100
++++ b/stm32f10x_conf.h	2014-11-20 14:48:44.777575000 +0100
 @@ -32,6 +32,7 @@
  
  /* Includes ------------------------------------------------------------------*/
@@ -9,7 +9,7 @@ diff -purN a/stm32f10x_conf.h b/stm32f10x_conf.h
  #include "stm32f10x_adc.h"
  #include "stm32f10x_bkp.h"
  #include "stm32f10x_can.h"
-@@ -54,6 +55,14 @@
+@@ -54,6 +55,15 @@
  #include "stm32f10x_usart.h"
  #include "stm32f10x_wwdg.h"
  #include "misc.h"   /* High level functions for NVIC and SysTick (add-on to CMSIS functions) */
@@ -21,6 +21,7 @@ diff -purN a/stm32f10x_conf.h b/stm32f10x_conf.h
 +#include "stm32f10x_rcc.h"
 +#include "stm32f10x_tim.h"
 +#include "misc.h"
++#include "config.h"
  
  /* Exported types ------------------------------------------------------------*/
  /* Exported constants --------------------------------------------------------*/
