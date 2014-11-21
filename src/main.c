@@ -244,11 +244,8 @@ int main(void)
 
 			check_macros(&myIRData);
 
-			/* send IR-data via USB-HID */
-			memset(buf, 0, sizeof(buf));
-			/* myIRData -> buf[0-5] */
+			/* send IR-data + timestamp via USB-HID */
 			memcpy(buf, &myIRData, sizeof(myIRData));
-			/* timestamp -> buf[6-9] */
 			memcpy(&buf[sizeof(myIRData)], &timestamp, sizeof(timestamp));
 			USB_HID_SendData(buf, sizeof(myIRData) + sizeof(timestamp));
 		}
