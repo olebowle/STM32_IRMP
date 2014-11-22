@@ -88,7 +88,7 @@ int8_t set_handler(uint8_t *buf)
 		enable_ir_receiver(1);
 		break;
 	case CMD_ALARM:
-		AlarmValue = (buf[3]<<24)|(buf[4]<<16)|(buf[5]<<8)|buf[6];
+		AlarmValue = *((uint32_t *) &buf[3]);
 		break;
 	case CMD_MACRO:
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
