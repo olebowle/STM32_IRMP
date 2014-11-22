@@ -2,7 +2,32 @@
 #include <string.h>
 #include "config.h"
 #include "handler.h"
+#include "usb_hid.h"
 #include "irsnd.h"
+
+/* keep in sync with ir{mp,snd}config.h  */
+const uint8_t caps_packet[] = {
+	MACRO_SLOTS,
+	MACRO_DEPTH,
+	WAKE_SLOTS,
+	IRMP_SIRCS_PROTOCOL,
+	IRMP_NEC_PROTOCOL,
+	IRMP_SAMSUNG_PROTOCOL,
+	IRMP_KASEIKYO_PROTOCOL,
+	IRMP_JVC_PROTOCOL,
+	IRMP_NEC16_PROTOCOL,
+	IRMP_NEC42_PROTOCOL,
+	IRMP_MATSUSHITA_PROTOCOL,
+	IRMP_DENON_PROTOCOL,
+	IRMP_RC5_PROTOCOL,
+	IRMP_RC6_PROTOCOL,
+	IRMP_RC6A_PROTOCOL,
+	IRMP_IR60_PROTOCOL,
+	IRMP_GRUNDIG_PROTOCOL,
+	IRMP_SIEMENS_PROTOCOL,
+	IRMP_NOKIA_PROTOCOL,
+	0
+};
 
 int8_t get_handler(uint8_t *buf)
 {
@@ -11,6 +36,14 @@ int8_t get_handler(uint8_t *buf)
 	uint8_t idx;
 
 	switch ((enum command) buf[2]) {
+	case CMD_CAPS:
+		idx = (HID_IN_BUFFER_SIZE - 3) * buf[3];
+		memcpy(&buf[3], &caps_packet[idx], HID_IN_BUFFER_SIZE - 3);
+		/* actually this is not true for the last transmission,
+		 * but it doesn't matter since it's NULL terminated
+		 */
+		ret = HID_IN_BUFFER_SIZE;
+		break;
 	case CMD_ALARM:
 		/* AlarmValue -> buf[3-6] */
 		memcpy(&buf[3], &AlarmValue, sizeof(AlarmValue));
