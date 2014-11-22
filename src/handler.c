@@ -2,14 +2,10 @@
 #include <string.h>
 #include "config.h"
 #include "handler.h"
-#include "usb_hid.h"
 #include "irsnd.h"
 
 /* keep in sync with ir{mp,snd}config.h  */
 const uint8_t caps_packet[] = {
-	MACRO_SLOTS,
-	MACRO_DEPTH,
-	WAKE_SLOTS,
 	IRMP_SIRCS_PROTOCOL,
 	IRMP_NEC_PROTOCOL,
 	IRMP_SAMSUNG_PROTOCOL,
@@ -37,8 +33,17 @@ int8_t get_handler(uint8_t *buf)
 
 	switch ((enum command) buf[2]) {
 	case CMD_CAPS:
-		idx = (HID_IN_BUFFER_SIZE - 3) * buf[3];
-		memcpy(&buf[3], &caps_packet[idx], HID_IN_BUFFER_SIZE - 3);
+		/* in first query we give informaton about slots and depth */
+		if (!buf[3]) {
+			buf[3] = MACRO_SLOTS;
+			buf[4] = MACRO_DEPTH;
+			buf[5] = WAKE_SLOTS;
+			ret += 3;
+			break;
+		}
+		/* in later queries we give information about supported protocols */
+		idx = BYTES_PER_QUERY * (buf[3] - 1);
+		memcpy(&buf[3], &caps_packet[idx], BYTES_PER_QUERY);
 		/* actually this is not true for the last transmission,
 		 * but it doesn't matter since it's NULL terminated
 		 */

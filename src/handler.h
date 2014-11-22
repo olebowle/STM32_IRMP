@@ -1,6 +1,11 @@
 #ifndef __HANDLER_H
 #define __HANDLER_H
 
+#include "usb_hid.h"
+
+/* first 3 bytes: STAT_CMD ACC_GET CMD_CAPS not useable to transmit information */
+#define BYTES_PER_QUERY	(HID_IN_BUFFER_SIZE - 3)
+
 enum __attribute__ ((__packed__)) access {
 	ACC_GET,
 	ACC_SET,
