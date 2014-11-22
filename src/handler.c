@@ -93,7 +93,6 @@ int8_t set_handler(uint8_t *buf)
 	case CMD_MACRO:
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
 		eeprom_store(idx, &buf[5]);
-		ret += SIZEOF_IR * sizeof(uint16_t);
 		/* validate stored value in eeprom */
 		eeprom_restore(tmp, idx);
 		if (memcmp(&buf[5], tmp, sizeof(tmp)))
@@ -128,7 +127,6 @@ int8_t reset_handler(uint8_t *buf)
 	case CMD_MACRO:
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
 		eeprom_store(idx, zeros);
-		ret += SIZEOF_IR * sizeof(uint16_t);
 		break;
 	case CMD_WAKE:
 		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
