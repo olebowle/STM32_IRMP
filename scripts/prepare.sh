@@ -1,4 +1,5 @@
 #!/bin/bash
+[[ -e ext/prepared ]] && exit 0
 for i in 32010 32121; do
 	if [[ ! -s stsw-stm$i.zip ]]; then
 		wget "http://www.st.com/st-web-ui/static/active/en/st_prod_software_internet/resource/technical/software/firmware/stsw-stm$i.zip"
@@ -94,3 +95,5 @@ tar -xvf $ar --strip-components=1 $path/irsnd.c
 tar -xvf $ar --strip-components=1 $path/irsnd.h
 tar -xvf $ar --strip-components=1 $path/irsndconfig.h
 patch -p1 -i ../../scripts/irmp.patch
+
+touch ../prepared

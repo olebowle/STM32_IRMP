@@ -17,9 +17,11 @@ COMMON = -g -Os -flto
 INCLUDES = -Iext/stm32lib-4.0.0 -Iext/irmp-2.6.7 -Isrc
 DEFINES = -D$(PLATFORM) -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -DIRMP_LOGGING
 
+DONT_CARE := $(shell ./scripts/prepare.sh)
+
 CRT0 = ext/stm32lib-4.0.0/startup_stm32f10x_md.o
-SRC = $(shell find -type f -name "*.c")
-OBJ = $(CRT0) $(SRC:.c=.o)
+SRCS = $(shell find -type f -name "*.c")
+OBJS = $(CRT0) $(SRCS:.c=.o)
 
 CFLAGS = -Wall -ffunction-sections -fno-builtin $(ARCH) $(COMMON) $(INCLUDES) $(DEFINES)
 LDFLAGS = -nostartfiles -Wl,-Map=$(TARGET).map,--gc-sections,--entry=main,-Tscripts/arm-gcc-link.ld $(ARCH) $(COMMON)
@@ -27,12 +29,15 @@ LDFLAGS = -nostartfiles -Wl,-Map=$(TARGET).map,--gc-sections,--entry=main,-Tscri
 $(TARGET).bin: $(TARGET).elf
 	$(OBJCP) -O binary $< $@
 
-$(TARGET).elf: $(OBJ)
-	$(LD) $(LDFLAGS) $(OBJ) -o $@
+$(TARGET).elf: $(OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
 
+.PHONY: flash clean distclean
 flash: $(TARGET).bin
 	stm32flash -v -w $(TARGET).bin /dev/ttyUSB0
 
-.PHONY: clean
 clean:
-	rm -f $(OBJ) $(TARGET).bin $(TARGET).elf $(TARGET).map
+	rm -f $(OBJS) $(TARGET).{bin,elf,map}
+
+distclean: clean
+	rm -rf ext
