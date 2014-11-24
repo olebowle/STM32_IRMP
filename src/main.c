@@ -222,7 +222,7 @@ int main(void)
 			}
 
 			/* send (modified) data (for verify) */
-			USB_HID_SendData(buf, ret);
+			USB_HID_SendData(REPORT_ID_CONFIG, buf, ret);
 			toggle_LED();
 		}
 
@@ -247,7 +247,7 @@ int main(void)
 			/* send IR-data + timestamp via USB-HID */
 			memcpy(buf, &myIRData, sizeof(myIRData));
 			memcpy(&buf[sizeof(myIRData)], &timestamp, sizeof(timestamp));
-			USB_HID_SendData(buf, sizeof(myIRData) + sizeof(timestamp));
+			USB_HID_SendData(REPORT_ID_IR, buf, sizeof(myIRData) + sizeof(timestamp));
 		}
 	}
 }

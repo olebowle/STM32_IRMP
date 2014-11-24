@@ -14,6 +14,8 @@
 #define	HID_IN_INTERVAL		1	/* (1...255) STM32->PC */
 #define	HID_OUT_INTERVAL	1	/* (1...255) PC->STM32 */
 
+#define REPORT_ID_IR		0x01
+#define REPORT_ID_CONFIG	0x02
 
 typedef enum {
 	RX_USB_ERR =0,
@@ -24,7 +26,7 @@ typedef enum {
 
 void USB_HID_Init(void);
 DEVICE_STATE USB_HID_GetStatus(void);
-ErrorStatus USB_HID_SendData(uint8_t *ptr, uint8_t len);
+ErrorStatus USB_HID_SendData(uint8_t report_id, uint8_t *ptr, uint8_t len);
 USB_HID_RXSTATUS_t USB_HID_ReceiveData(uint8_t *ptr);
 
 #endif /* __USB_HID_H */

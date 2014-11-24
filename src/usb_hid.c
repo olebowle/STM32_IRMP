@@ -39,7 +39,7 @@ uint16_t USBD_HID_RecReport(void)
 }
 
 /* len: bytes to send (1...HID_IN_BUFFER_SIZE) */
-ErrorStatus USB_HID_SendData(uint8_t *ptr, uint8_t len)
+ErrorStatus USB_HID_SendData(uint8_t report_id, uint8_t *ptr, uint8_t len)
 {
 	uint8_t n;
 
@@ -47,7 +47,7 @@ ErrorStatus USB_HID_SendData(uint8_t *ptr, uint8_t len)
 		return(ERROR);
 
 	/* Report ID */
-	USB_HID_IN_BUF[0]=0x04;
+	USB_HID_IN_BUF[0]=report_id;
 
 	for(n=0;n<=HID_IN_BUFFER_SIZE;n++) {
 		if(n<=len) {
