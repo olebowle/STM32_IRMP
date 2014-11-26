@@ -55,14 +55,14 @@ int8_t get_handler(uint8_t *buf)
 		ret += sizeof(AlarmValue);
 		break;
 	case CMD_MACRO:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * buf[3] + SIZEOF_IR/2 * buf[4];
 		eeprom_restore(&buf[3], idx);
-		ret += SIZEOF_IR * sizeof(uint16_t);
+		ret += SIZEOF_IR;
 		break;
 	case CMD_WAKE:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * MACRO_SLOTS + SIZEOF_IR/2 * buf[3];
 		eeprom_restore(&buf[3], idx);
-		ret += SIZEOF_IR * sizeof(uint16_t);
+		ret += SIZEOF_IR;
 		break;
 	default:
 		ret = -1;
@@ -76,7 +76,7 @@ int8_t set_handler(uint8_t *buf)
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
 	uint8_t idx;
-	uint8_t tmp[SIZEOF_IR * sizeof(uint16_t)];
+	uint8_t tmp[SIZEOF_IR];
 
 	switch ((enum command) buf[2]) {
 	case CMD_EMIT:
@@ -91,7 +91,7 @@ int8_t set_handler(uint8_t *buf)
 		AlarmValue = *((uint32_t *) &buf[3]);
 		break;
 	case CMD_MACRO:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * buf[3] + SIZEOF_IR/2 * buf[4];
 		eeprom_store(idx, &buf[5]);
 		/* validate stored value in eeprom */
 		eeprom_restore(tmp, idx);
@@ -99,7 +99,7 @@ int8_t set_handler(uint8_t *buf)
 			ret = -1;
 		break;
 	case CMD_WAKE:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * MACRO_SLOTS + SIZEOF_IR/2 * buf[3];
 		eeprom_store(idx, &buf[4]);
 		/* validate stored value in eeprom */
 		eeprom_restore(tmp, idx);
@@ -118,18 +118,18 @@ int8_t reset_handler(uint8_t *buf)
 	/* number of valid bytes in buf, -1 signifies error */
 	int8_t ret = 3;
 	uint8_t idx;
-	uint8_t zeros[SIZEOF_IR * sizeof(uint16_t)] = {0};
+	uint8_t zeros[SIZEOF_IR] = {0};
 
 	switch ((enum command) buf[2]) {
 	case CMD_ALARM:
 		AlarmValue = 0xFFFFFFFF;
 		break;
 	case CMD_MACRO:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * buf[3] + SIZEOF_IR * buf[4];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * buf[3] + SIZEOF_IR/2 * buf[4];
 		eeprom_store(idx, zeros);
 		break;
 	case CMD_WAKE:
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * buf[3];
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * MACRO_SLOTS + SIZEOF_IR/2 * buf[3];
 		eeprom_store(idx, zeros);
 		break;
 	default:

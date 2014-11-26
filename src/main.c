@@ -99,6 +99,7 @@ void Wakeup(void)
 /* put wakeup IRData into eeprom */
 void store_new_wakeup(void)
 {
+	uint8_t idx;
 	IRMP_DATA wakeup_IRData;
 	toggle_LED();
 	systicks = 0;
@@ -106,8 +107,9 @@ void store_new_wakeup(void)
 	delay_ms(5000);
 	if (irmp_get_data(&wakeup_IRData)) {
 		wakeup_IRData.flags = 0;
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * MACRO_SLOTS;
 		/* store wakeup-code learned by remote in first wakeup slot */
-		eeprom_store((MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS, (uint8_t *) &wakeup_IRData);
+		eeprom_store(idx, (uint8_t *) &wakeup_IRData);
 		toggle_LED();
 	}
 }
@@ -115,10 +117,10 @@ void store_new_wakeup(void)
 /* is received ir-code in one of the wakeup-slots? wakeup if true */
 void check_wakeups(IRMP_DATA *ir) {
 	uint8_t i, idx;
-	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
+	uint8_t buf[SIZEOF_IR];
 
 	for (i=0; i < WAKE_SLOTS; i++) {
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * MACRO_SLOTS + SIZEOF_IR * i;
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * MACRO_SLOTS + SIZEOF_IR/2 * i;
 		eeprom_restore(buf, idx);
 		if (!memcmp(buf, ir, sizeof(ir)))
 			Wakeup();
@@ -136,14 +138,14 @@ void enable_ir_receiver(uint8_t enable)
 void transmit_macro(uint8_t macro)
 {
 	uint8_t i, idx;
-	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
-	uint8_t zeros[SIZEOF_IR * sizeof(uint16_t)] = {0};
+	uint8_t buf[SIZEOF_IR];
+	uint8_t zeros[SIZEOF_IR] = {0};
 
 	/* disable receiving of ir, since we don't want to rx what we txed*/
 	enable_ir_receiver(0);
 	/* we start from 1, since we don't want to tx the trigger code of the macro*/
 	for (i=1; i < MACRO_DEPTH + 1; i++) {
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * macro + SIZEOF_IR * i;
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * macro + SIZEOF_IR/2 * i;
 		eeprom_restore(buf, idx);
 		/* first encounter of zero in macro means end of macro */
 		if (!memcmp(buf, &zeros, sizeof(zeros)))
@@ -158,10 +160,10 @@ void transmit_macro(uint8_t macro)
 /* is received ir-code (trigger) in one of the macro-slots? transmit_macro if true */
 void check_macros(IRMP_DATA *ir) {
 	uint8_t i, idx;
-	uint8_t buf[SIZEOF_IR * sizeof(uint16_t)];
+	uint8_t buf[SIZEOF_IR];
 
 	for (i=0; i < MACRO_SLOTS; i++) {
-		idx = (MACRO_DEPTH + 1) * SIZEOF_IR * i;
+		idx = (MACRO_DEPTH + 1) * SIZEOF_IR/2 * i;
 		eeprom_restore(buf, idx);
 		if (!memcmp(buf, ir, sizeof(ir)))
 			transmit_macro(i);

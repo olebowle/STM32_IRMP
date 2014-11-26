@@ -4,7 +4,7 @@
 #define MACRO_SLOTS	8
 #define MACRO_DEPTH	8
 #define WAKE_SLOTS	8
-#define SIZEOF_IR	3
+#define SIZEOF_IR	6
 
 /* uncomment this, if you use a ST-Link */
 /*#define ST_Link*/

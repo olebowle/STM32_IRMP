@@ -85,7 +85,7 @@ diff -purN a/eeprom.h b/eeprom.h
  
  /* Variables' number */
 -#define NumbOfVar               ((uint8_t)0x03)
-+#define NumbOfVar ((uint8_t) (((MACRO_DEPTH + 1) * MACRO_SLOTS + WAKE_SLOTS) * SIZEOF_IR))
++#define NumbOfVar ((uint8_t) (((MACRO_DEPTH + 1) * MACRO_SLOTS + WAKE_SLOTS) * SIZEOF_IR/2))
  
  /* Exported types ------------------------------------------------------------*/
  /* Exported macro ------------------------------------------------------------*/
