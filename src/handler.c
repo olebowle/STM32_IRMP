@@ -5,7 +5,7 @@
 #include "irsnd.h"
 
 /* keep in sync with ir{mp,snd}config.h  */
-const uint8_t caps_packet[] = {
+const uint8_t supported_protocols[] = {
 	IRMP_SIRCS_PROTOCOL,
 	IRMP_NEC_PROTOCOL,
 	IRMP_SAMSUNG_PROTOCOL,
@@ -43,7 +43,7 @@ int8_t get_handler(uint8_t *buf)
 		}
 		/* in later queries we give information about supported protocols */
 		idx = BYTES_PER_QUERY * (buf[3] - 1);
-		memcpy(&buf[3], &caps_packet[idx], BYTES_PER_QUERY);
+		memcpy(&buf[3], &supported_protocols[idx], BYTES_PER_QUERY);
 		/* actually this is not true for the last transmission,
 		 * but it doesn't matter since it's NULL terminated
 		 */
