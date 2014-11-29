@@ -8,18 +8,6 @@
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  */
-diff -Nrup a/platform_config.h b/platform_config.h
---- a/platform_config.h	2013-01-21 18:27:28.000000000 +0100
-+++ b/platform_config.h	2014-11-21 19:03:39.000000000 +0100
-@@ -48,7 +48,7 @@
-  #elif defined (USE_STM3210E_EVAL)
-   #include "stm3210e_eval.h"
-  #else
--  #error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
-+  //#error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
-  #endif /* USE_STM3210B_EVAL */
- #elif defined (USE_STM32373C_EVAL)
-  #include "stm32f37x.h"
 diff -Nrup a/usb_conf.h b/usb_conf.h
 --- a/usb_conf.h	2013-01-21 18:27:28.000000000 +0100
 +++ b/usb_conf.h	2014-11-26 21:58:05.000000000 +0100
@@ -437,3 +425,24 @@ diff -Nrup a/usb_prop.c b/usb_prop.c
    {
      return NULL;
    }
+diff -Nrup a/platform_config.h b/platform_config.h
+--- a/platform_config.h	2013-01-21 19:27:27.000000000 +0100
++++ b/platform_config.h	2014-11-29 11:46:52.120499332 +0100
+@@ -48,7 +48,7 @@
+  #elif defined (USE_STM3210E_EVAL)
+   #include "stm3210e_eval.h"
+  #else
+-  #error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
++  //#error "Missing define: USE_STM3210B_EVAL or USE_STM3210E_EVAL"
+  #endif /* USE_STM3210B_EVAL */
+ #elif defined (USE_STM32373C_EVAL)
+  #include "stm32f37x.h"
+@@ -68,7 +68,7 @@
+  //#define USE_STM32L152_EVAL
+ //#define USE_STM32L152D_EVAL
+ //#define USE_STM32373C_EVAL
+- #define USE_STM32303C_EVAL
++ //#define USE_STM32303C_EVAL
+ #endif
+ 
+ /*Unique Devices IDs register set*/
