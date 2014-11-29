@@ -34,6 +34,7 @@ typedef enum {
 	RX_READY
 } USB_HID_RXSTATUS_t; 
 
+uint8_t HID_SendData(void);
 
 void USB_HID_Init(void);
 DEVICE_STATE USB_HID_GetStatus(void);

@@ -11,8 +11,8 @@
 
 #include "usb_hid.h"
 
-uint8_t USB_HID_OUT_BUF[HID_OUT_BUFFER_SIZE+1];	/* PC->STM32 */
-uint8_t USB_HID_IN_BUF[HID_IN_BUFFER_SIZE+1];	/* STM32->PC */
+uint8_t USB_HID_OUT_BUF[HID_OUT_BUFFER_SIZE];	/* PC->STM32 */
+uint8_t USB_HID_IN_BUF[HID_IN_BUFFER_SIZE];	/* STM32->PC */
 
 uint16_t USB_HID_RecData_Len;
 uint8_t USB_HID_RecData_Ready;
