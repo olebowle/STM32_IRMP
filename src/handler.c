@@ -43,6 +43,9 @@ int8_t get_handler(uint8_t *buf)
 		}
 		/* in later queries we give information about supported protocols */
 		idx = BYTES_PER_QUERY * (buf[3] - 1);
+		if (idx >= sizeof(supported_protocols))
+			return -1;
+
 		strncpy((char *) &buf[3], &supported_protocols[idx], BYTES_PER_QUERY);
 		/* actually this is not true for the last transmission,
 		 * but it doesn't matter since it's NULL terminated
