@@ -3,8 +3,9 @@
 
 #include "usb_hid.h"
 
-/* first 3 bytes: STAT_CMD ACC_GET CMD_CAPS not useable to transmit information */
-#define BYTES_PER_QUERY	(HID_IN_BUFFER_SIZE - 3)
+/* first 4 bytes: ReportID STAT_CMD ACC_GET CMD_CAPS
+ * unuseable to transmit information */
+#define BYTES_PER_QUERY	(HID_IN_BUFFER_SIZE - 4)
 
 enum __attribute__ ((__packed__)) access {
 	ACC_GET,
